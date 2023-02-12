@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <queue>
 
+#include <string>
 
 #include "io.hpp"
 #include "engine.hpp"
