@@ -6,11 +6,15 @@
 
 class OrderMap {
 	// hasmap<"str: instrument" : InstrumentOrderBook>
-	std::unordered_map instrument_map;
+	std::unordered_map<string, InstrumentOrderBook> instrument_map;
 	std::mutex mut;
 
 	public:
 	OrderMap() : instrument_map{}, mut{} {}
+
+	InstrumentOrderBook getInstrument() {
+
+	}
 
 }
 
