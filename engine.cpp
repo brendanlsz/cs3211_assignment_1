@@ -16,7 +16,11 @@ class Order {
 		int price;            // the order's price
 		int count;            // the order's size
 		std::string side;             // the side (buy or sell)
+		int match_count;  // number of times order was matched
 		std::chrono::microseconds::rep timestamp;        // the timestamp when the order was added to the book
+
+		Order(int order_id, std::string instrument, int price, int count, std::string side, std::chrono::microseconds::rep timestamp) 
+			: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), timestamp(timestamp) {}
 };
 
 class InstrumentOrderBook{
