@@ -1,14 +1,43 @@
 #include <iostream>
 #include <thread>
+#include <unordered_map>
+#include <queue>
+
 #include <string>
 #include <unordered_map>
 
 #include "io.hpp"
 #include "engine.hpp"
 
+class Order {
+	public:
+		int order_id;        // the order ID
+		std::string instrument;       // the instrument name
+		int price;            // the order's price
+		int count;            // the order's size
+		std::string side;             // the side (buy or sell)
+		std::chrono::microseconds::rep timestamp;        // the timestamp when the order was added to the book
+};
+
 class InstrumentOrderBook{
-	std::vector<> buy;
-	std::vector<> sell;
+
+	class CompareBuy {
+		public:
+			bool operator() (Order x, Order y)
+			{
+				return x.price < y.price;
+			}
+	};
+
+	class CompareSell {
+		public:
+			bool operator() (Order x, Order y)
+			{
+				return x.price > y.price;
+			}
+	};
+	std::priority_queue<Order, std::vector<Order>, CompareBuy> buy;
+	std::priority_queue<Order, std::vector<Order>, CompareSell> sell;
 
 	public:
 	InstrumentOrderBook() : buy{} , sell{} {}
@@ -23,14 +52,19 @@ class OrderMap {
 	public:
 	OrderMap() : instrument_map{}, mut{} {}
 
-	InstrumentOrderBook& getInstrument(std::string instrument) {
-		std::unique_lock lock{mut};
-		if(instrument_map.contains(instrument)) {
-			return instrument_map[instrument];
-		}
-		instrument_map[instrument] = InstrumentOrderBook{};
-		return instrument_map[instrument];
+	InstrumentOrderBook getInstrument() {
+
 	}
+
+}
+
+class InstrumentOrderBook{
+	std::vector<> buy;
+	std::vector<> sell;
+
+	public:
+	InstrumentOrderBook() : buy{} , sell{} {}
+
 };
 
 
