@@ -4,6 +4,25 @@
 #include "io.hpp"
 #include "engine.hpp"
 
+class OrderMap {
+	// hasmap<"str: instrument" : InstrumentOrderBook>
+	std::unordered_map instrument_map;
+	std::mutex mut;
+
+	public:
+	OrderMap() : instrument_map{}, mut{} {}
+
+}
+
+class InstrumentOrderBook{
+	std::vector<> buy;
+	std::vector<> sell;
+
+	public:
+	InstrumentOrderBook() : buy{} , sell{} {}
+
+};
+
 void Engine::accept(ClientConnection connection)
 {
 	auto thread = std::thread(&Engine::connection_thread, this, std::move(connection));
