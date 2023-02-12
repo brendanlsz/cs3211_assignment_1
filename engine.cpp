@@ -1,23 +1,10 @@
 #include <iostream>
 #include <thread>
 #include <string>
+#include <unordered_map>
 
 #include "io.hpp"
 #include "engine.hpp"
-
-class OrderMap {
-	// hasmap<"str: instrument" : InstrumentOrderBook>
-	std::unordered_map<std::string, InstrumentOrderBook> instrument_map;
-	std::mutex mut;
-
-	public:
-	OrderMap() : instrument_map{}, mut{} {}
-
-	InstrumentOrderBook getInstrument() {
-
-	}
-
-}
 
 class InstrumentOrderBook{
 	std::vector<> buy;
@@ -27,6 +14,25 @@ class InstrumentOrderBook{
 	InstrumentOrderBook() : buy{} , sell{} {}
 
 };
+
+class OrderMap {
+	// hasmap<"str: instrument" : InstrumentOrderBook>
+	std::unordered_map<std::string, InstrumentOrderBook> instrument_map;
+	std::mutex mut;
+
+	public:
+	OrderMap() : instrument_map{}, mut{} {}
+
+	InstrumentOrderBook& getInstrument(std::string instrument) {
+		std::unique_lock lock{mut};
+		if(instrument_map.contains(instrument)) {
+			return instrument_map[instrument];
+		}
+		instrument_map[instrument] = InstrumentOrderBook{};
+		return instrument_map[instrument];
+	}
+};
+
 
 void Engine::accept(ClientConnection connection)
 {
