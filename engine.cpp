@@ -52,21 +52,16 @@ class OrderMap {
 	public:
 	OrderMap() : instrument_map{}, mut{} {}
 
-	InstrumentOrderBook getInstrument() {
-
+	InstrumentOrderBook& getInstrument(std::string instrument) {
+		std::unique_lock lock{mut};
+		if(instrument_map.contains(instrument)) {
+			return instrument_map[instrument];
+		}
+		instrument_map[instrument] = InstrumentOrderBook{};
+        instrument_map[instrument].testing = 3;
+		return instrument_map[instrument];
 	}
-
-}
-
-class InstrumentOrderBook{
-	std::vector<> buy;
-	std::vector<> sell;
-
-	public:
-	InstrumentOrderBook() : buy{} , sell{} {}
-
 };
-
 
 void Engine::accept(ClientConnection connection)
 {
