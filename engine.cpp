@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <string>
 
 #include "io.hpp"
 #include "engine.hpp"
