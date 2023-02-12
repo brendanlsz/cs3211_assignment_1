@@ -58,7 +58,6 @@ class OrderMap {
 			return instrument_map[instrument];
 		}
 		instrument_map[instrument] = InstrumentOrderBook{};
-        instrument_map[instrument].testing = 3;
 		return instrument_map[instrument];
 	}
 };
