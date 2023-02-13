@@ -87,12 +87,14 @@ class InstrumentOrderBook{
 				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
                         match.price, totalCount, getCurrentTimestamp());
 				curr->exec_id += 1;
-				match.count -= totalCount; 
+				match.count -= totalCount;
+				totalCount = 0;
 			} else if (match.count < totalCount) {
 				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
                         match.price, match.count, getCurrentTimestamp());
 				curr->exec_id += 1;
-				match.count -= totalCount; 
+				totalCount -= match.count;
+				totalCount = 0;
 			}
 
 			if (curr->next == nullptr) {
@@ -104,6 +106,7 @@ class InstrumentOrderBook{
 			} 
 			lk.swap(lk_2);
 			lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+			curr = curr->next;
 		}
 		
 	}
