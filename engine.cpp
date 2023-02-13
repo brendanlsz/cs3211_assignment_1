@@ -194,7 +194,7 @@ void InstrumentOrderBook::insertBuy(Order& order) {
 	Node* curr_next = buy_head;
 	std::unique_lock<std::mutex> curr_lk(mut);
 	std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-	while(curr_next != nullptr && curr_next->order->price >= order.price) {
+	while(curr_next != nullptr && (curr_next->order->price >= order.price ||  curr_next == buy_head)) {
 		curr_lk.swap(curr_next_lk);
 		curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 		curr = curr_next;
@@ -219,10 +219,10 @@ void InstrumentOrderBook::insertSell(Order& order) {
 	// dummy mutex
 	std::mutex mut;
 	Node* curr = nullptr;
-	Node* curr_next = buy_head;
+	Node* curr_next = sell_head;
 	std::unique_lock<std::mutex> curr_lk(mut);
 	std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-	while(curr_next != nullptr && curr_next->order->price <= order.price) {
+	while(curr_next != nullptr && (curr_next->order->price <= order.price ||  curr_next == sell_head)) {
 		curr_lk.swap(curr_next_lk);
 		curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 		curr = curr_next;
