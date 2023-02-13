@@ -59,6 +59,58 @@ class InstrumentOrderBook{
 	//InstrumentOrderBook() : buy{} , sell{} {}
 	InstrumentOrderBook(std::string instr) : buy_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), sell_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), 
 		instr(instr) {}
+
+	void insertBuy(Order* order) {
+		// dummy mutex
+		std::mutex mut;
+		Node* curr = nullptr;
+		Node* curr_next = buy_head;
+		std::unique_lock<std::mutex> curr_lk(mut);
+		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
+		while(curr_next->order->price > order->price) {
+			curr_lk.swap(curr_next_lk);
+			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+			curr = curr_next;
+			curr_next = curr_next->next;
+		}
+		// insert node between curr and curr_next;
+		Node* node = new Node(nullptr, order);
+		if(curr == nullptr) {
+			// insert at head
+			buy_head = node;
+			buy_head->next = curr_next;
+		} else {
+			// insert in between
+			curr->next = node;
+			node->next = curr_next;
+		}
+	}
+
+	void insertSell(Order* order) {
+		// dummy mutex
+		std::mutex mut;
+		Node* curr = nullptr;
+		Node* curr_next = buy_head;
+		std::unique_lock<std::mutex> curr_lk(mut);
+		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
+		while(curr_next->order->price < order->price) {
+			curr_lk.swap(curr_next_lk);
+			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+			curr = curr_next;
+			curr_next = curr_next->next;
+		}
+		// insert node between curr and curr_next;
+		Node* node = new Node(nullptr, order);
+		if(curr == nullptr) {
+			// insert at head
+			buy_head = node;
+			buy_head->next = curr_next;
+		} else {
+			// insert in between
+			curr->next = node;
+			node->next = curr_next;
+		}
+	}
 };
 
 class OrderMap {
