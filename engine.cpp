@@ -169,7 +169,7 @@ class InstrumentOrderBook{
 		Node* curr_next = buy_head;
 		std::unique_lock<std::mutex> curr_lk(mut);
 		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-		while(curr_next != nullptr && curr_next->order->price > order.price) {
+		while(curr_next != nullptr && curr_next->order->price >= order.price) {
 			curr_lk.swap(curr_next_lk);
 			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 			curr = curr_next;
@@ -177,6 +177,7 @@ class InstrumentOrderBook{
 		}
 		// insert node between curr and curr_next;
 		Node* node = new Node(nullptr, &order);
+		order.timestamp = getCurrentTimestamp();
 		if(curr == nullptr) {
 			// insert at head, should NEVER happen
 			throw("err, insertion at head");
@@ -197,13 +198,14 @@ class InstrumentOrderBook{
 		Node* curr_next = buy_head;
 		std::unique_lock<std::mutex> curr_lk(mut);
 		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-		while(curr_next != nullptr && curr_next->order->price < order.price) {
+		while(curr_next != nullptr && curr_next->order->price <= order.price) {
 			curr_lk.swap(curr_next_lk);
 			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 			curr = curr_next;
 			curr_next = curr_next->next;
 		}
 		// insert node between curr and curr_next;
+		order.timestamp = getCurrentTimestamp();
 		Node* node = new Node(nullptr, &order);
 		if(curr == nullptr) {
 			// insert at head
