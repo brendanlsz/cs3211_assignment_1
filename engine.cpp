@@ -29,20 +29,23 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 			break;
 		}
 		// case 1 first sell order count >= my count
-		if (match.count >= totalCount) {
-			Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
-					match.price, totalCount, getCurrentTimestamp());
-			curr->exec_id += 1;
-			match.count -= totalCount;
-			totalCount = 0;
-		} else if (match.count < totalCount && match.count > 0) {
-			Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
-					match.price, match.count, getCurrentTimestamp());
-			curr->exec_id += 1;
-			totalCount -= match.count;
-			match.count = 0;
-			match.isFullyFilled = true;
+		if(!match.isCancelled && !match.isFullyFilled) {
+			if (match.count >= totalCount) {
+				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
+						match.price, totalCount, getCurrentTimestamp());
+				curr->exec_id += 1;
+				match.count -= totalCount;
+				totalCount = 0;
+			} else if (match.count < totalCount && match.count > 0) {
+				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
+						match.price, match.count, getCurrentTimestamp());
+				curr->exec_id += 1;
+				totalCount -= match.count;
+				match.count = 0;
+				match.isFullyFilled = true;
+			}
 		}
+		
 
 		if (curr->next == nullptr) {
 			if (totalCount > 0) {
@@ -81,20 +84,23 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 			break;
 		}
 		// case 1 first sell order count >= my count
-		if (match.count >= totalCount) {
-			Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
-					match.price, totalCount, getCurrentTimestamp());
-			curr->exec_id += 1;
-			match.count -= totalCount;
-			totalCount = 0;
-		} else if (match.count < totalCount && match.count > 0) {
-			Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
-					match.price, match.count, getCurrentTimestamp());
-			curr->exec_id += 1;
-			totalCount -= match.count;
-			match.count = 0;
-			match.isFullyFilled = true;
+		if(!match.isCancelled && !match.isFullyFilled) {
+			if (match.count >= totalCount) {
+				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
+						match.price, totalCount, getCurrentTimestamp());
+				curr->exec_id += 1;
+				match.count -= totalCount;
+				totalCount = 0;
+			} else if (match.count < totalCount && match.count > 0) {
+				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
+						match.price, match.count, getCurrentTimestamp());
+				curr->exec_id += 1;
+				totalCount -= match.count;
+				match.count = 0;
+				match.isFullyFilled = true;
+			}
 		}
+		
 
 		if (curr->next == nullptr) {
 			if (totalCount > 0) {
@@ -306,7 +312,12 @@ void Engine::connection_thread(ClientConnection connection)
 				// Output::OrderDeleted(input.order_id, true, output_time);
 
 				std::string instr = order_map.getOrderInstrument(input.order_id); 
-				order_map.getInstrument(instr).tryCancel(input.order_id);
+				if(instr.compare("not found") == 0) {
+					auto output_time = getCurrentTimestamp();
+					Output::OrderDeleted(input.order_id, false, output_time);
+				} else {
+					order_map.getInstrument(instr).tryCancel(input.order_id);
+				}
 				break;
 			}
 
