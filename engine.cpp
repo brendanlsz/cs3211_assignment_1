@@ -77,7 +77,7 @@ class InstrumentOrderBook{
 			Order& match = *(curr->order);
 			if (match.price > order.price) {
 				order.count = totalCount;
-				insertBuy(&order);
+				insertBuy(order);
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
 				    getCurrentTimestamp());
 				break;
@@ -100,7 +100,7 @@ class InstrumentOrderBook{
 			if (curr->next == nullptr) {
 				if (totalCount > 0) {
 					order.count = totalCount;
-					insertBuy(&order); 
+					insertBuy(order); 
 				}
 				break;
 			} 
@@ -125,7 +125,7 @@ class InstrumentOrderBook{
 			Order& match = *(curr->order);
 			if (match.price < order.price) {
 				order.count = totalCount;
-				insertSell(&order);
+				insertSell(order);
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
 				    getCurrentTimestamp());
 				break;
@@ -148,7 +148,7 @@ class InstrumentOrderBook{
 			if (curr->next == nullptr) {
 				if (totalCount > 0) {
 					order.count = totalCount;
-					insertSell(&order); 
+					insertSell(order); 
 				}
 				break;
 			} 
@@ -157,21 +157,22 @@ class InstrumentOrderBook{
 			curr = curr->next;
 		}
 	}
-	void insertBuy(Order* order) {
+
+	void insertBuy(Order& order) {
 		// dummy mutex
 		std::mutex mut;
 		Node* curr = nullptr;
 		Node* curr_next = buy_head;
 		std::unique_lock<std::mutex> curr_lk(mut);
 		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-		while(curr_next != nullptr && curr_next->order->price > order->price) {
+		while(curr_next != nullptr && curr_next->order->price > order.price) {
 			curr_lk.swap(curr_next_lk);
 			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 			curr = curr_next;
 			curr_next = curr_next->next;
 		}
 		// insert node between curr and curr_next;
-		Node* node = new Node(nullptr, order);
+		Node* node = new Node(nullptr, &order);
 		if(curr == nullptr) {
 			// insert at head, should NEVER happen
 			throw("err, insertion at head");
@@ -185,21 +186,21 @@ class InstrumentOrderBook{
 		}
 	}
 
-	void insertSell(Order* order) {
+	void insertSell(Order& order) {
 		// dummy mutex
 		std::mutex mut;
 		Node* curr = nullptr;
 		Node* curr_next = buy_head;
 		std::unique_lock<std::mutex> curr_lk(mut);
 		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-		while(curr_next != nullptr && curr_next->order->price < order->price) {
+		while(curr_next != nullptr && curr_next->order->price < order.price) {
 			curr_lk.swap(curr_next_lk);
 			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 			curr = curr_next;
 			curr_next = curr_next->next;
 		}
 		// insert node between curr and curr_next;
-		Node* node = new Node(nullptr, order);
+		Node* node = new Node(nullptr, &order);
 		if(curr == nullptr) {
 			// insert at head
 			// should never happen
