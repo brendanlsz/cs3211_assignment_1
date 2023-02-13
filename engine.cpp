@@ -51,9 +51,7 @@ class InstrumentOrderBook{
 	// 		}
 	// };
 	// std::priority_queue<Order, std::vector<Order>, CompareBuy> buy;
-	// std::priority_queue<Order, std::vector<Order>, CompareSell> sell;
-
-	
+	// std::priority_queue<Order, std::vector<Order>, CompareSell> sell;	
 
 	public:
 	Node* buy_head;
@@ -101,6 +99,63 @@ class InstrumentOrderBook{
 	// void tryExecuteSell(Order order) {
 
 	// }
+	void insertBuy(Order* order) {
+		// dummy mutex
+		std::mutex mut;
+		Node* curr = nullptr;
+		Node* curr_next = buy_head;
+		std::unique_lock<std::mutex> curr_lk(mut);
+		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
+		while(curr_next != nullptr && curr_next->order->price > order->price) {
+			curr_lk.swap(curr_next_lk);
+			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+			curr = curr_next;
+			curr_next = curr_next->next;
+		}
+		// insert node between curr and curr_next;
+		Node* node = new Node(nullptr, order);
+		if(curr == nullptr) {
+			// insert at head
+			buy_head = node;
+			buy_head->next = curr_next;
+		} else if (curr_next == nullptr) {
+			// insert at tail
+			curr->next = node;
+		} else {
+			// insert in between
+			curr->next = node;
+			node->next = curr_next;
+		}
+	}
+
+	void insertSell(Order* order) {
+		// dummy mutex
+		std::mutex mut;
+		Node* curr = nullptr;
+		Node* curr_next = buy_head;
+		std::unique_lock<std::mutex> curr_lk(mut);
+		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
+		while(curr_next != nullptr && curr_next->order->price < order->price) {
+			curr_lk.swap(curr_next_lk);
+			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+			curr = curr_next;
+			curr_next = curr_next->next;
+		}
+		// insert node between curr and curr_next;
+		Node* node = new Node(nullptr, order);
+		if(curr == nullptr) {
+			// insert at head
+			buy_head = node;
+			buy_head->next = curr_next;
+		} else if (curr_next == nullptr) {
+			// insert at tail
+			curr->next = node;
+		} else {
+			// insert in between
+			curr->next = node;
+			node->next = curr_next;
+		}
+	}
 };
 
 class OrderMap {
