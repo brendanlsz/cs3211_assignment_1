@@ -20,9 +20,13 @@ class Order {
 		std::chrono::microseconds::rep timestamp;        // the timestamp when the order was added to the book
 		bool isFullyFilled;
 		bool isCancelled;
+		std::thread::id creator_thread_id;
+		Order(int order_id, std::string instrument, int price, int count, std::string side, std::chrono::microseconds::rep timestamp, std::thread::id creator_thread_id) 
+			: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), timestamp(timestamp),
+			isFullyFilled(false), isCancelled(false), creator_thread_id(creator_thread_id) {}
 		Order(int order_id, std::string instrument, int price, int count, std::string side, std::chrono::microseconds::rep timestamp) 
 			: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), timestamp(timestamp),
-			isFullyFilled(false), isCancelled(false) {}
+			isFullyFilled(false), isCancelled(false), creator_thread_id{} {}
 };
 
 class Node {
@@ -115,7 +119,7 @@ class InstrumentOrderBook{
 		}
 		
 	}
-	void tryExecuteSell(Order order) {
+	void tryExecuteSell(Order& order) {
 		std::unique_lock<std::mutex> lk(buy_head->m);
 		Node* curr = buy_head->next;
 		if (curr == nullptr) { // no matching resting order
@@ -164,6 +168,81 @@ class InstrumentOrderBook{
 			lk_2 = std::unique_lock<std::mutex>(curr->next->m);
 			curr = curr->next;
 		}
+	}
+	void tryCancel(int target_order_id) {
+		// iterate through sell list to find matching order id
+		std::thread::id this_id = std::this_thread::get_id();
+		{
+			// block to unlock unique_lock when it goes out of scope
+			std::unique_lock<std::mutex> lk(sell_head->m);
+			Node* curr = sell_head->next;
+			if (curr != nullptr) { // at least one order excluding dummy node
+				std::unique_lock<std::mutex> lk_2(curr->m);
+				// check if order matches
+				while(curr != nullptr) {
+					Order& order = *(curr->order);
+					if(order.order_id == target_order_id) {
+						break;
+					}
+					lk.swap(lk_2);
+					lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+					curr = curr->next;
+				}
+				if(curr != nullptr) {
+					// if code reaches here, target_order_id is in sell list
+					if (!curr->order->isFullyFilled && !curr->order->isCancelled && this_id == curr->order->creator_thread_id) {
+						// execute cancel order
+						auto output_time = getCurrentTimestamp();
+						curr->order->isCancelled = true;
+						Output::OrderDeleted(target_order_id, true, output_time);
+
+					} else {
+						// reject cancel order
+						auto output_time = getCurrentTimestamp();
+						Output::OrderDeleted(target_order_id, false, output_time);
+					}
+					return;
+				}
+			}
+		}
+		// iterate through buy list to find matching order id if cannot find in sell list
+		{
+			// block to unlock unique_lock when it goes out of scope
+			std::unique_lock<std::mutex> lk(sell_head->m);
+			Node* curr = buy_head->next;
+			if (curr != nullptr) { // at least one order excluding dummy node
+				std::unique_lock<std::mutex> lk_2(curr->m);
+				// check if order matches
+				while(curr != nullptr) {
+					Order& order = *(curr->order);
+					if(order.order_id == target_order_id) {
+						break;
+					}
+					lk.swap(lk_2);
+					lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+					curr = curr->next;
+				}
+				if(curr != nullptr) {
+					// if code reaches here, target_order_id is in buy list
+					if (!curr->order->isFullyFilled && !curr->order->isCancelled  && this_id == curr->order->creator_thread_id) {
+						// execute cancel order
+						auto output_time = getCurrentTimestamp();
+						curr->order->isCancelled = true;
+						Output::OrderDeleted(target_order_id, true, output_time);
+
+					} else {
+						// reject cancel order
+						auto output_time = getCurrentTimestamp();
+						Output::OrderDeleted(target_order_id, false, output_time);
+					}
+					return;
+				}
+			}
+		}
+		// Reject cancel order since order_id was not found in either list
+		auto output_time = getCurrentTimestamp();
+		Output::OrderDeleted(target_order_id, false, output_time);
+		
 	}
 
 	void insertBuy(Order& order) {
