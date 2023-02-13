@@ -17,16 +17,11 @@ public:
 	int price;            // the order's price
 	int count;            // the order's size
 	std::string side;             // the side (buy or sell)
-	int match_count;  // number of times order was matched
 	bool isFullyFilled;
 	bool isCancelled;
-	std::thread::id creator_thread_id;
-	Order(int order_id, std::string instrument, int price, int count, std::string side, std::thread::id creator_thread_id) 
-		: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), 
-		isFullyFilled(false), isCancelled(false), creator_thread_id(creator_thread_id) {}
 	Order(int order_id, std::string instrument, int price, int count, std::string side) 
-		: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), 
-		isFullyFilled(false), isCancelled(false), creator_thread_id{} {}
+		: order_id(order_id), instrument(instrument), price(price), count(count), side(side), 
+		isFullyFilled(false), isCancelled(false){}
 };
 
 class Node {

@@ -126,7 +126,6 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 
 void InstrumentOrderBook::tryCancel(int target_order_id) {
 	// iterate through sell list to find matching order id
-	std::thread::id this_id = std::this_thread::get_id();
 	{
 		// block to unlock unique_lock when it goes out of scope
 		std::unique_lock<std::mutex> lk(sell_head->m);
@@ -145,7 +144,7 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 			}
 			if(curr != nullptr) {
 				// if code reaches here, target_order_id is in sell list
-				if (!curr->order->isFullyFilled && !curr->order->isCancelled && this_id == curr->order->creator_thread_id) {
+				if (!curr->order->isFullyFilled && !curr->order->isCancelled) {
 					// execute cancel order
 					auto output_time = getCurrentTimestamp();
 					curr->order->isCancelled = true;
@@ -179,7 +178,7 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 			}
 			if(curr != nullptr) {
 				// if code reaches here, target_order_id is in buy list
-				if (!curr->order->isFullyFilled && !curr->order->isCancelled  && this_id == curr->order->creator_thread_id) {
+				if (!curr->order->isFullyFilled && !curr->order->isCancelled) {
 					// execute cancel order
 					auto output_time = getCurrentTimestamp();
 					curr->order->isCancelled = true;
@@ -332,8 +331,7 @@ void Engine::connection_thread(ClientConnection connection)
 				SyncCerr {} << "Got buy: ID: " << input.order_id << std::endl;
 				std::string instr(input.instrument); 
 				order_map.addOrderInstrumentRecord(input.order_id, instr);
-				std::thread::id currThreadId = std::this_thread::get_id();
-				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "buy", currThreadId);
+				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "buy");
 				order_map.getInstrument(instr).tryExecuteBuy(*newOrder);
 				break;
 			}
@@ -342,8 +340,7 @@ void Engine::connection_thread(ClientConnection connection)
 				SyncCerr {} << "Got sell: ID: " << input.order_id << std::endl;
 				std::string instr(input.instrument); 
 				order_map.addOrderInstrumentRecord(input.order_id, instr);
-				std::thread::id currThreadId = std::this_thread::get_id();
-				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "sell", currThreadId);
+				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "sell");
 				order_map.getInstrument(instr).tryExecuteSell(*newOrder);
 				break;
 			}
