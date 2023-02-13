@@ -94,7 +94,7 @@ class InstrumentOrderBook{
                         match.price, match.count, getCurrentTimestamp());
 				curr->exec_id += 1;
 				totalCount -= match.count;
-				totalCount = 0;
+				match.count = 0;
 			}
 
 			if (curr->next == nullptr) {
