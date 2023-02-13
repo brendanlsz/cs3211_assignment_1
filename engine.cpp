@@ -261,6 +261,20 @@ InstrumentOrderBook& OrderMap::getInstrument(std::string instrument) {
 	}
 }
 
+std::string OrderMap::getOrderInstrument(int orderId) {
+	std::unique_lock lock{mut};
+	if(order_instrument_map.contains(orderId)) {
+		return order_instrument_map.at(orderId);
+	} else {
+		return "not found";
+	}
+}
+
+void OrderMap::addOrderInstrumentRecord(int orderId, std::string instr) {
+	std::unique_lock lock{mut};
+	order_instrument_map.insert(std::make_pair(orderId, instr));
+}
+
 void Engine::accept(ClientConnection connection)
 {
 	auto thread = std::thread(&Engine::connection_thread, this, std::move(connection));
@@ -290,24 +304,26 @@ void Engine::connection_thread(ClientConnection connection)
 				// an appropriate timestamp!
 				// auto output_time = getCurrentTimestamp();
 				// Output::OrderDeleted(input.order_id, true, output_time);
-				std::string instr(input.instrument); 
+
+				std::string instr = order_map.getOrderInstrument(input.order_id); 
 				order_map.getInstrument(instr).tryCancel(input.order_id);
 				break;
 			}
 
 			case input_buy: {
-				std::string instr(input.instrument); 
-				
-				std::thread::id currThreadId = std::this_thread::get_id();
 				SyncCerr {} << "Got buy: ID: " << input.order_id << std::endl;
+				std::string instr(input.instrument); 
+				order_map.addOrderInstrumentRecord(input.order_id, instr);
+				std::thread::id currThreadId = std::this_thread::get_id();
 				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "buy", currThreadId);
 				order_map.getInstrument(instr).tryExecuteBuy(*newOrder);
 				break;
 			}
 
 			case input_sell: {
-				std::string instr(input.instrument); 
 				SyncCerr {} << "Got sell: ID: " << input.order_id << std::endl;
+				std::string instr(input.instrument); 
+				order_map.addOrderInstrumentRecord(input.order_id, instr);
 				std::thread::id currThreadId = std::this_thread::get_id();
 				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "sell", currThreadId);
 				order_map.getInstrument(instr).tryExecuteSell(*newOrder);

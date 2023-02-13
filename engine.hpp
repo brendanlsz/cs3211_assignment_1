@@ -57,12 +57,15 @@ public:
 class OrderMap {
 	// hasmap<"str: instrument" : InstrumentOrderBook>
 	std::unordered_map<std::string, InstrumentOrderBook> instrument_map;
+	std::unordered_map<int, std::string> order_instrument_map;
 	std::mutex mut;
 
 public:
-	OrderMap() : instrument_map{}, mut{} {}
+	OrderMap() : instrument_map{}, order_instrument_map{}, mut{} {}
 
 	InstrumentOrderBook& getInstrument(std::string instrument);
+	std::string getOrderInstrument(int orderId);
+	void addOrderInstrumentRecord(int orderId, std::string instr);
 };
 
 struct Engine
