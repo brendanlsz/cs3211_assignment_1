@@ -188,15 +188,18 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 }
 
 void InstrumentOrderBook::insertBuy(Order& order) {
+	
 	// dummy mutex
 	std::mutex mut;
 	Node* curr = nullptr;
 	Node* curr_next = buy_head;
 	std::unique_lock<std::mutex> curr_lk(mut);
 	std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-	while(curr_next != nullptr && (curr_next->order->price >= order.price ||  curr_next == buy_head)) {
+	while(curr_next != nullptr && (curr_next->order->price >= order.price || curr_next == buy_head)) {
 		curr_lk.swap(curr_next_lk);
-		curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+		if(curr_next->next != nullptr) {
+			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+		}
 		curr = curr_next;
 		curr_next = curr_next->next;
 	}
@@ -224,7 +227,9 @@ void InstrumentOrderBook::insertSell(Order& order) {
 	std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
 	while(curr_next != nullptr && (curr_next->order->price <= order.price ||  curr_next == sell_head)) {
 		curr_lk.swap(curr_next_lk);
-		curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+		if(curr_next->next != nullptr) {
+			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+		}
 		curr = curr_next;
 		curr_next = curr_next->next;
 	}
@@ -292,7 +297,9 @@ void Engine::connection_thread(ClientConnection connection)
 
 			case input_buy: {
 				std::string instr(input.instrument); 
+				
 				std::thread::id currThreadId = std::this_thread::get_id();
+				SyncCerr {} << "Got buy: ID: " << input.order_id << std::endl;
 				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "buy", currThreadId);
 				order_map.getInstrument(instr).tryExecuteBuy(*newOrder);
 				break;
@@ -300,6 +307,7 @@ void Engine::connection_thread(ClientConnection connection)
 
 			case input_sell: {
 				std::string instr(input.instrument); 
+				SyncCerr {} << "Got sell: ID: " << input.order_id << std::endl;
 				std::thread::id currThreadId = std::this_thread::get_id();
 				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "sell", currThreadId);
 				order_map.getInstrument(instr).tryExecuteSell(*newOrder);
