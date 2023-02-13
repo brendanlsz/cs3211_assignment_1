@@ -54,8 +54,8 @@ class InstrumentOrderBook{
 	// std::priority_queue<Order, std::vector<Order>, CompareSell> sell;	
 
 	public:
-	Node* buy_head;
-	Node* sell_head;
+	Node* const buy_head;
+	Node* const sell_head;
 	std::string instr;
 	//InstrumentOrderBook() : buy{} , sell{} {}
 	InstrumentOrderBook(std::string instr) : buy_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), sell_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), 
@@ -115,9 +115,8 @@ class InstrumentOrderBook{
 		// insert node between curr and curr_next;
 		Node* node = new Node(nullptr, order);
 		if(curr == nullptr) {
-			// insert at head
-			buy_head = node;
-			buy_head->next = curr_next;
+			// insert at head, should NEVER happen
+			throw("err, insertion at head");
 		} else if (curr_next == nullptr) {
 			// insert at tail
 			curr->next = node;
@@ -145,8 +144,8 @@ class InstrumentOrderBook{
 		Node* node = new Node(nullptr, order);
 		if(curr == nullptr) {
 			// insert at head
-			buy_head = node;
-			buy_head->next = curr_next;
+			// should never happen
+			throw("insertion at head");
 		} else if (curr_next == nullptr) {
 			// insert at tail
 			curr->next = node;
