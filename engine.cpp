@@ -23,29 +23,44 @@ class Order {
 			: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), timestamp(timestamp) {}
 };
 
+class Node {
+	public:
+		Node* next;
+		Order* order;
+		std::mutex m;
+
+		Node(Node* next, Order* order) : next(next), order(order), m{} {}
+};
+
 class InstrumentOrderBook{
 
-	class CompareBuy {
-		public:
-			bool operator() (Order x, Order y)
-			{
-				return x.price < y.price;
-			}
-	};
+	// class CompareBuy {
+	// 	public:
+	// 		bool operator() (Order x, Order y)
+	// 		{
+	// 			return x.price < y.price;
+	// 		}
+	// };
 
-	class CompareSell {
-		public:
-			bool operator() (Order x, Order y)
-			{
-				return x.price > y.price;
-			}
-	};
-	std::priority_queue<Order, std::vector<Order>, CompareBuy> buy;
-	std::priority_queue<Order, std::vector<Order>, CompareSell> sell;
+	// class CompareSell {
+	// 	public:
+	// 		bool operator() (Order x, Order y)
+	// 		{
+	// 			return x.price > y.price;
+	// 		}
+	// };
+	// std::priority_queue<Order, std::vector<Order>, CompareBuy> buy;
+	// std::priority_queue<Order, std::vector<Order>, CompareSell> sell;
+
+	
 
 	public:
-	InstrumentOrderBook() : buy{} , sell{} {}
-
+	Node* buy_head;
+	Node* sell_head;
+	std::string instr;
+	//InstrumentOrderBook() : buy{} , sell{} {}
+	InstrumentOrderBook(std::string instr) : buy_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), sell_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), 
+		instr(instr) {}
 };
 
 class OrderMap {
@@ -61,7 +76,8 @@ class OrderMap {
 		if(instrument_map.contains(instrument)) {
 			return instrument_map[instrument];
 		}
-		instrument_map[instrument] = InstrumentOrderBook{};
+		InstrumentOrderBook newInstrument {instrument};
+		instrument_map[instrument] = newInstrument;
 		return instrument_map[instrument];
 	}
 };
