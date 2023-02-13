@@ -76,7 +76,8 @@ class InstrumentOrderBook{
 		while (totalCount > 0 && curr != nullptr) {
 			Order& match = *(curr->order);
 			if (match.price > order.price) {
-				//insertBuy(order);
+				order.count = totalCount;
+				insertBuy(&order);
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
 				    getCurrentTimestamp());
 				break;
