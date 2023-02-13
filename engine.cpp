@@ -18,9 +18,11 @@ class Order {
 		std::string side;             // the side (buy or sell)
 		int match_count;  // number of times order was matched
 		std::chrono::microseconds::rep timestamp;        // the timestamp when the order was added to the book
-
+		bool isFullyFilled;
+		bool isCancelled;
 		Order(int order_id, std::string instrument, int price, int count, std::string side, std::chrono::microseconds::rep timestamp) 
-			: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), timestamp(timestamp) {}
+			: order_id(order_id), instrument(instrument), price(price), count(count), side(side), match_count(0), timestamp(timestamp),
+			isFullyFilled(false), isCancelled(false) {}
 };
 
 class Node {
@@ -95,6 +97,7 @@ class InstrumentOrderBook{
 				curr->exec_id += 1;
 				totalCount -= match.count;
 				match.count = 0;
+				match.isFullyFilled = true;
 			}
 
 			if (curr->next == nullptr) {
@@ -145,6 +148,7 @@ class InstrumentOrderBook{
 				curr->exec_id += 1;
 				totalCount -= match.count;
 				match.count = 0;
+				match.isFullyFilled = true;
 			}
 
 			if (curr->next == nullptr) {
