@@ -96,7 +96,7 @@ class InstrumentOrderBook{
 		Node* curr_next = buy_head;
 		std::unique_lock<std::mutex> curr_lk(mut);
 		std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
-		while(curr_next != null && curr_next->order->price < order->price) {
+		while(curr_next != nullptr && curr_next->order->price < order->price) {
 			curr_lk.swap(curr_next_lk);
 			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
 			curr = curr_next;
