@@ -310,7 +310,7 @@ void Engine::connection_thread(ClientConnection connection)
 		switch(input.type)
 		{
 			case input_cancel: {
-				SyncCerr {} << "Got cancel: ID: " << input.order_id << std::endl;
+				// SyncCerr {} << "Got cancel: ID: " << input.order_id << std::endl;
 				
 				// Remember to take timestamp at the appropriate time, or compute
 				// an appropriate timestamp!
@@ -328,7 +328,7 @@ void Engine::connection_thread(ClientConnection connection)
 			}
 
 			case input_buy: {
-				SyncCerr {} << "Got buy: ID: " << input.order_id << std::endl;
+				// SyncCerr {} << "Got buy: ID: " << input.order_id << std::endl;
 				std::string instr(input.instrument); 
 				order_map.addOrderInstrumentRecord(input.order_id, instr);
 				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "buy");
@@ -337,7 +337,7 @@ void Engine::connection_thread(ClientConnection connection)
 			}
 
 			case input_sell: {
-				SyncCerr {} << "Got sell: ID: " << input.order_id << std::endl;
+				// SyncCerr {} << "Got sell: ID: " << input.order_id << std::endl;
 				std::string instr(input.instrument); 
 				order_map.addOrderInstrumentRecord(input.order_id, instr);
 				Order* newOrder = new Order(input.order_id, instr, input.price, input.count, "sell");
