@@ -28,8 +28,9 @@ class Node {
 		Node* next;
 		Order* order;
 		std::mutex m;
+		int exec_id;
 
-		Node(Node* next, Order* order) : next(next), order(order), m{} {}
+		Node(Node* next, Order* order) : next(next), order(order), m{}, exec_id(1) {}
 };
 
 class InstrumentOrderBook{
@@ -61,6 +62,45 @@ class InstrumentOrderBook{
 	//InstrumentOrderBook() : buy{} , sell{} {}
 	InstrumentOrderBook(std::string instr) : buy_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), sell_head(new Node(nullptr, new Order{0, instr, 0, 0, "0", 0})), 
 		instr(instr) {}
+
+
+	void tryExecuteBuy(Order order) {
+		std::unique_lock<std::mutex> lk(sell_head->m);
+		Node* curr = sell_head->next;
+		std::unique_lock<std::mutex> lk_2(curr->m);
+		if (curr == nullptr) { // no matching resting order
+			// add buy order to buy resting
+			// call insertBuy(order)
+			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, order.timestamp);
+			return;
+		} 
+		int totalCount = order.count;
+		while (totalCount > 0 && curr != nullptr) {
+			Order& match = *(curr->order);
+			if (match.price > order.price) {
+				//insertBuy(order);
+				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
+				    getCurrentTimestamp());
+				break;
+			}
+			// case 1 first sell order count >= my count
+			if (match.count >= totalCount) {
+				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
+                        match.price, totalCount, getCurrentTimestamp());
+				curr->exec_id += 1;
+				match.count -= totalCount; 
+			} else if (match.count < totalCount) {
+				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
+                        match.price, match.count, getCurrentTimestamp());
+				curr->exec_id += 1;
+				match.count -= totalCount; 
+			}
+		}
+		
+	}
+	// void tryExecuteSell(Order order) {
+
+	// }
 };
 
 class OrderMap {
@@ -123,6 +163,7 @@ void Engine::connection_thread(ClientConnection connection)
 				// Remember to take timestamp at the appropriate time, or compute
 				// an appropriate timestamp!
 				auto output_time = getCurrentTimestamp();
+
 				Output::OrderAdded(input.order_id, input.instrument, input.price, input.count, input.type == input_sell,
 				    output_time);
 				break;
