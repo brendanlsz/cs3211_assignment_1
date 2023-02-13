@@ -77,7 +77,7 @@ class OrderMap {
 			return instrument_map.at(instrument);
 		} else {
 			InstrumentOrderBook newInstrument(instrument);
-			instrument_map.at(instrument) = newInstrument;
+			instrument_map.insert(std::make_pair(instrument, newInstrument));
 			return instrument_map.at(instrument);
 		}
 	}
