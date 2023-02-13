@@ -100,7 +100,9 @@ class InstrumentOrderBook{
 			if (curr->next == nullptr) {
 				if (totalCount > 0) {
 					order.count = totalCount;
-					insertBuy(order); 
+					insertBuy(order);
+					Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
+				    	order.timestamp); 
 				}
 				break;
 			} 
@@ -149,6 +151,8 @@ class InstrumentOrderBook{
 				if (totalCount > 0) {
 					order.count = totalCount;
 					insertSell(order); 
+					Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
+				    	order.timestamp);
 				}
 				break;
 			} 
