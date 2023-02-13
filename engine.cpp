@@ -50,9 +50,7 @@ class InstrumentOrderBook{
 	// 		}
 	// };
 	// std::priority_queue<Order, std::vector<Order>, CompareBuy> buy;
-	// std::priority_queue<Order, std::vector<Order>, CompareSell> sell;
-
-	
+	// std::priority_queue<Order, std::vector<Order>, CompareSell> sell;	
 
 	public:
 	Node* buy_head;
