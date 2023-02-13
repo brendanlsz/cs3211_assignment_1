@@ -35,6 +35,9 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 						match.price, totalCount, getCurrentTimestamp());
 				curr->exec_id += 1;
 				match.count -= totalCount;
+				if(match.count == 0) {
+					match.isFullyFilled = true;
+				}
 				totalCount = 0;
 			} else if (match.count < totalCount && match.count > 0) {
 				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
@@ -90,7 +93,11 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 						match.price, totalCount, getCurrentTimestamp());
 				curr->exec_id += 1;
 				match.count -= totalCount;
+				if(match.count == 0) {
+					match.isFullyFilled = true;
+				}
 				totalCount = 0;
+				
 			} else if (match.count < totalCount && match.count > 0) {
 				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
 						match.price, match.count, getCurrentTimestamp());
