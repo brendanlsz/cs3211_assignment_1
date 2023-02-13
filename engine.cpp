@@ -62,16 +62,16 @@ class InstrumentOrderBook{
 		instr(instr) {}
 
 
-	void tryExecuteBuy(Order order) {
+	void tryExecuteBuy(Order& order) {
 		std::unique_lock<std::mutex> lk(sell_head->m);
 		Node* curr = sell_head->next;
-		std::unique_lock<std::mutex> lk_2(curr->m);
 		if (curr == nullptr) { // no matching resting order
 			// add buy order to buy resting
 			// call insertBuy(order)
 			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, order.timestamp);
 			return;
 		} 
+		std::unique_lock<std::mutex> lk_2(curr->m);
 		int totalCount = order.count;
 		while (totalCount > 0 && curr != nullptr) {
 			Order& match = *(curr->order);
@@ -93,6 +93,16 @@ class InstrumentOrderBook{
 				curr->exec_id += 1;
 				match.count -= totalCount; 
 			}
+
+			if (curr->next == nullptr) {
+				if (totalCount > 0) {
+					order.count = totalCount;
+					insertBuy(&order); 
+				}
+				break;
+			} 
+			lk.swap(lk_2);
+			lk_2 = std::unique_lock<std::mutex>(curr->next->m);
 		}
 		
 	}
