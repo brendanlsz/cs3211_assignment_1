@@ -89,7 +89,7 @@ class InstrumentOrderBook{
 				curr->exec_id += 1;
 				match.count -= totalCount;
 				totalCount = 0;
-			} else if (match.count < totalCount) {
+			} else if (match.count < totalCount && match.count > 0) {
 				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
                         match.price, match.count, getCurrentTimestamp());
 				curr->exec_id += 1;
@@ -139,7 +139,7 @@ class InstrumentOrderBook{
 				curr->exec_id += 1;
 				match.count -= totalCount;
 				totalCount = 0;
-			} else if (match.count < totalCount) {
+			} else if (match.count < totalCount && match.count > 0) {
 				Output::OrderExecuted(match.order_id, order.order_id, curr->exec_id,
                         match.price, match.count, getCurrentTimestamp());
 				curr->exec_id += 1;
