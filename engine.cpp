@@ -126,6 +126,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 
 void InstrumentOrderBook::tryCancel(int target_order_id) {
 	// iterate through sell list to find matching order id
+	
 	{
 		// block to unlock unique_lock when it goes out of scope
 		std::unique_lock<std::mutex> lk(sell_head->m);
@@ -135,11 +136,14 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 			// check if order matches
 			while(curr != nullptr) {
 				Order& order = *(curr->order);
+				
 				if(order.order_id == target_order_id) {
 					break;
 				}
 				lk.swap(lk_2);
-				lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+				if(curr->next != nullptr) {
+					lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+				}
 				curr = curr->next;
 			}
 			if(curr != nullptr) {
@@ -162,18 +166,24 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 	// iterate through buy list to find matching order id if cannot find in sell list
 	{
 		// block to unlock unique_lock when it goes out of scope
-		std::unique_lock<std::mutex> lk(sell_head->m);
+		
+		std::unique_lock<std::mutex> lk(buy_head->m);
+		
 		Node* curr = buy_head->next;
+		
 		if (curr != nullptr) { // at least one order excluding dummy node
 			std::unique_lock<std::mutex> lk_2(curr->m);
 			// check if order matches
+			SyncCerr {} << "Instrument to cancel " << target_order_id << std::endl;
 			while(curr != nullptr) {
 				Order& order = *(curr->order);
 				if(order.order_id == target_order_id) {
 					break;
 				}
 				lk.swap(lk_2);
-				lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+				if(curr->next != nullptr) {
+					lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+				}
 				curr = curr->next;
 			}
 			if(curr != nullptr) {
