@@ -79,7 +79,7 @@ class InstrumentOrderBook{
 				order.count = totalCount;
 				insertBuy(order);
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
-				    getCurrentTimestamp());
+				    order.timestamp);
 				break;
 			}
 			// case 1 first sell order count >= my count
@@ -127,7 +127,7 @@ class InstrumentOrderBook{
 				order.count = totalCount;
 				insertSell(order);
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
-				    getCurrentTimestamp());
+				    order.timestamp);
 				break;
 			}
 			// case 1 first sell order count >= my count
