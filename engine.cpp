@@ -67,7 +67,7 @@ class InstrumentOrderBook{
 		Node* curr = sell_head->next;
 		if (curr == nullptr) { // no matching resting order
 			// add buy order to buy resting
-			insertBuy(&order);
+			insertBuy(order);
 			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, order.timestamp);
 			return;
 		} 
@@ -115,7 +115,7 @@ class InstrumentOrderBook{
 		Node* curr = buy_head->next;
 		if (curr == nullptr) { // no matching resting order
 			// add buy order to buy resting
-			insertSell(&order);
+			insertSell(order);
 			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, order.timestamp);
 			return;
 		} 
