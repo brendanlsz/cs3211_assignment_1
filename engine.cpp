@@ -74,11 +74,12 @@ class OrderMap {
 	InstrumentOrderBook& getInstrument(std::string instrument) {
 		std::unique_lock lock{mut};
 		if(instrument_map.contains(instrument)) {
-			return instrument_map[instrument];
+			return instrument_map.at(instrument);
+		} else {
+			InstrumentOrderBook newInstrument(instrument);
+			instrument_map.at(instrument) = newInstrument;
+			return instrument_map.at(instrument);
 		}
-		InstrumentOrderBook newInstrument {instrument};
-		instrument_map[instrument] = newInstrument;
-		return instrument_map[instrument];
 	}
 };
 
