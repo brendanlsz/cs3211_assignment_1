@@ -10,10 +10,11 @@
 
 void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 	std::unique_lock<std::mutex> lk(sell_head->m);
+	std::unique_lock<std::mutex> buy_head_lk(buy_head->m);
 	Node* curr = sell_head->next;
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
-		insertBuy(order);
+		insertBuy(order, std::move(buy_head_lk));
 		Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, getCurrentTimestamp());
 		return;
 	} 
@@ -23,7 +24,7 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 		Order& match = *(curr->order);
 		if (match.price > order.price) {
 			order.count = totalCount;
-			insertBuy(order);
+			insertBuy(order, std::move(buy_head_lk));
 			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
 				getCurrentTimestamp());
 			break;
@@ -53,7 +54,7 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 		if (curr->next == nullptr) {
 			if (totalCount > 0) {
 				order.count = totalCount;
-				insertBuy(order);
+				insertBuy(order, std::move(buy_head_lk));
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
 					getCurrentTimestamp()); 
 			}
@@ -68,10 +69,11 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 
 void InstrumentOrderBook::tryExecuteSell(Order& order) {
 	std::unique_lock<std::mutex> lk(buy_head->m);
+	std::unique_lock<std::mutex> sell_head_lk(sell_head->m);
 	Node* curr = buy_head->next;
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
-		insertSell(order);
+		insertSell(order, std::move(sell_head_lk));
 		Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, getCurrentTimestamp());
 		return;
 	} 
@@ -81,7 +83,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 		Order& match = *(curr->order);
 		if (match.price < order.price) {
 			order.count = totalCount;
-			insertSell(order);
+			insertSell(order, std::move(sell_head_lk));
 			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
 				getCurrentTimestamp());
 			break;
@@ -112,7 +114,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 		if (curr->next == nullptr) {
 			if (totalCount > 0) {
 				order.count = totalCount;
-				insertSell(order); 
+				insertSell(order, std::move(sell_head_lk)); 
 				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
 					getCurrentTimestamp());
 			}
@@ -209,14 +211,14 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 	
 }
 
-void InstrumentOrderBook::insertBuy(Order& order) {
+void InstrumentOrderBook::insertBuy(Order& order, std::unique_lock<std::mutex> buy_head_lk ) {
 	
 	// dummy mutex
 	std::mutex mut;
 	Node* curr = nullptr;
 	Node* curr_next = buy_head;
 	std::unique_lock<std::mutex> curr_lk(mut);
-	std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
+	std::unique_lock<std::mutex> curr_next_lk = std::move(buy_head_lk);
 	while(curr_next != nullptr && (curr_next->order->price >= order.price || curr_next == buy_head)) {
 		curr_lk.swap(curr_next_lk);
 		if(curr_next->next != nullptr) {
@@ -240,13 +242,13 @@ void InstrumentOrderBook::insertBuy(Order& order) {
 	}
 }
 
-void InstrumentOrderBook::insertSell(Order& order) {
+void InstrumentOrderBook::insertSell(Order& order, std::unique_lock<std::mutex> sell_head_lk) {
 	// dummy mutex
 	std::mutex mut;
 	Node* curr = nullptr;
 	Node* curr_next = sell_head;
 	std::unique_lock<std::mutex> curr_lk(mut);
-	std::unique_lock<std::mutex> curr_next_lk (curr_next->m);
+	std::unique_lock<std::mutex> curr_next_lk = std::move(sell_head_lk);
 	while(curr_next != nullptr && (curr_next->order->price <= order.price ||  curr_next == sell_head)) {
 		curr_lk.swap(curr_next_lk);
 		if(curr_next->next != nullptr) {
