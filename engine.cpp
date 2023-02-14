@@ -176,7 +176,6 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 		if (curr != nullptr) { // at least one order excluding dummy node
 			std::unique_lock<std::mutex> lk_2(curr->m);
 			// check if order matches
-			SyncCerr {} << "Instrument to cancel " << target_order_id << std::endl;
 			while(curr != nullptr) {
 				Order& order = *(curr->order);
 				if(order.order_id == target_order_id) {
