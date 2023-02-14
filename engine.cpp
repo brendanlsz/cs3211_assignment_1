@@ -129,81 +129,79 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 void InstrumentOrderBook::tryCancel(int target_order_id) {
 	// iterate through sell list to find matching order id
 	
-	{
-		// block to unlock unique_lock when it goes out of scope
-		std::unique_lock<std::mutex> lk(sell_head->m);
-		Node* curr = sell_head->next;
-		if (curr != nullptr) { // at least one order excluding dummy node
-			std::unique_lock<std::mutex> lk_2(curr->m);
-			// check if order matches
-			while(curr != nullptr) {
-				Order& order = *(curr->order);
-				
-				if(order.order_id == target_order_id) {
-					break;
-				}
-				lk.swap(lk_2);
-				if(curr->next != nullptr) {
-					lk_2 = std::unique_lock<std::mutex>(curr->next->m);
-				}
-				curr = curr->next;
+	std::unique_lock<std::mutex> sell_head_lk(sell_head->m);
+	std::unique_lock<std::mutex> buy_head_lk(buy_head->m);
+	
+	Node* curr = sell_head->next;
+	if (curr != nullptr) { // at least one order excluding dummy node
+		std::unique_lock<std::mutex> sell_lk_1 = std::move(sell_head_lk);
+		std::unique_lock<std::mutex> sell_lk_2(curr->m);
+		// check if order matches
+		while(curr != nullptr) {
+			Order& order = *(curr->order);
+			
+			if(order.order_id == target_order_id) {
+				break;
 			}
-			if(curr != nullptr) {
-				// if code reaches here, target_order_id is in sell list
-				if (!curr->order->isFullyFilled && !curr->order->isCancelled) {
-					// execute cancel order
-					auto output_time = getCurrentTimestamp();
-					curr->order->isCancelled = true;
-					Output::OrderDeleted(target_order_id, true, output_time);
+			sell_lk_1.swap(sell_lk_2);
+			if(curr->next != nullptr) {
+				sell_lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+			}
+			curr = curr->next;
+		}
+		if(curr != nullptr) {
+			// if code reaches here, target_order_id is in sell list
+			if (!curr->order->isFullyFilled && !curr->order->isCancelled) {
+				// execute cancel order
+				auto output_time = getCurrentTimestamp();
+				curr->order->isCancelled = true;
+				Output::OrderDeleted(target_order_id, true, output_time);
 
-				} else {
-					// reject cancel order
-					auto output_time = getCurrentTimestamp();
-					Output::OrderDeleted(target_order_id, false, output_time);
-				}
-				return;
+			} else {
+				// reject cancel order
+				auto output_time = getCurrentTimestamp();
+				Output::OrderDeleted(target_order_id, false, output_time);
 			}
+			return;
 		}
 	}
+	// sell_lk.release();
+
 	// iterate through buy list to find matching order id if cannot find in sell list
-	{
-		// block to unlock unique_lock when it goes out of scope
-		
-		std::unique_lock<std::mutex> lk(buy_head->m);
-		
-		Node* curr = buy_head->next;
-		
-		if (curr != nullptr) { // at least one order excluding dummy node
-			std::unique_lock<std::mutex> lk_2(curr->m);
-			// check if order matches
-			while(curr != nullptr) {
-				Order& order = *(curr->order);
-				if(order.order_id == target_order_id) {
-					break;
-				}
-				lk.swap(lk_2);
-				if(curr->next != nullptr) {
-					lk_2 = std::unique_lock<std::mutex>(curr->next->m);
-				}
-				curr = curr->next;
+	curr = buy_head->next;
+	
+	if (curr != nullptr) { // at least one order excluding dummy node
+		std::unique_lock<std::mutex> buy_lk_1 = std::move(buy_head_lk);
+		std::unique_lock<std::mutex> buy_lk_2(curr->m);
+		// check if order matches
+		while(curr != nullptr) {
+			Order& order = *(curr->order);
+			if(order.order_id == target_order_id) {
+				break;
 			}
-			if(curr != nullptr) {
-				// if code reaches here, target_order_id is in buy list
-				if (!curr->order->isFullyFilled && !curr->order->isCancelled) {
-					// execute cancel order
-					auto output_time = getCurrentTimestamp();
-					curr->order->isCancelled = true;
-					Output::OrderDeleted(target_order_id, true, output_time);
+			buy_lk_1.swap(buy_lk_2);
+			if(curr->next != nullptr) {
+				buy_lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+			}
+			curr = curr->next;
+		}
+		if(curr != nullptr) {
+			// if code reaches here, target_order_id is in buy list
+			if (!curr->order->isFullyFilled && !curr->order->isCancelled) {
+				// execute cancel order
+				auto output_time = getCurrentTimestamp();
+				curr->order->isCancelled = true;
+				Output::OrderDeleted(target_order_id, true, output_time);
 
-				} else {
-					// reject cancel order
-					auto output_time = getCurrentTimestamp();
-					Output::OrderDeleted(target_order_id, false, output_time);
-				}
-				return;
+			} else {
+				// reject cancel order
+				auto output_time = getCurrentTimestamp();
+				Output::OrderDeleted(target_order_id, false, output_time);
 			}
+			return;
 		}
 	}
+	
 	// Reject cancel order since order_id was not found in either list
 	auto output_time = getCurrentTimestamp();
 	Output::OrderDeleted(target_order_id, false, output_time);
