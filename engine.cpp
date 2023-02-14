@@ -15,7 +15,7 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
 		insertBuy(order, std::move(buy_head_lk));
-		Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, getCurrentTimestamp());
+		// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, getCurrentTimestamp());
 		return;
 	} 
 	std::unique_lock<std::mutex> lk_2(curr->m);
@@ -25,8 +25,8 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 		if (match.price > order.price) {
 			order.count = totalCount;
 			insertBuy(order, std::move(buy_head_lk));
-			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
-				getCurrentTimestamp());
+			// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
+			// 	getCurrentTimestamp());
 			break;
 		}
 		// case 1 first sell order count >= my count
@@ -55,8 +55,8 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 			if (totalCount > 0) {
 				order.count = totalCount;
 				insertBuy(order, std::move(buy_head_lk));
-				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
-					getCurrentTimestamp()); 
+				// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
+				// 	getCurrentTimestamp()); 
 			}
 			break;
 		} 
@@ -74,7 +74,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
 		insertSell(order, std::move(sell_head_lk));
-		Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, getCurrentTimestamp());
+		// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, getCurrentTimestamp());
 		return;
 	} 
 	std::unique_lock<std::mutex> lk_2(curr->m);
@@ -84,8 +84,8 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 		if (match.price < order.price) {
 			order.count = totalCount;
 			insertSell(order, std::move(sell_head_lk));
-			Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
-				getCurrentTimestamp());
+			// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
+			// 	getCurrentTimestamp());
 			break;
 		}
 		// case 1 first sell order count >= my count
@@ -115,8 +115,8 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 			if (totalCount > 0) {
 				order.count = totalCount;
 				insertSell(order, std::move(sell_head_lk)); 
-				Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
-					getCurrentTimestamp());
+				// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
+				// 	getCurrentTimestamp());
 			}
 			break;
 		} 
@@ -203,8 +203,7 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 	}
 	
 	// Reject cancel order since order_id was not found in either list
-	auto output_time = getCurrentTimestamp();
-	Output::OrderDeleted(target_order_id, false, output_time);
+	Output::OrderDeleted(target_order_id, false, getCurrentTimestamp());
 	
 }
 
@@ -237,6 +236,7 @@ void InstrumentOrderBook::insertBuy(Order& order, std::unique_lock<std::mutex> b
 		curr->next = node;
 		node->next = curr_next;
 	}
+	Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, getCurrentTimestamp());
 }
 
 void InstrumentOrderBook::insertSell(Order& order, std::unique_lock<std::mutex> sell_head_lk) {
@@ -268,6 +268,7 @@ void InstrumentOrderBook::insertSell(Order& order, std::unique_lock<std::mutex> 
 		curr->next = node;
 		node->next = curr_next;
 	}
+	Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, getCurrentTimestamp());
 
 };
 
@@ -328,8 +329,7 @@ void Engine::connection_thread(ClientConnection connection)
 
 				std::string instr = order_map.getOrderInstrument(input.order_id); 
 				if(instr.compare("not found") == 0) {
-					auto output_time = getCurrentTimestamp();
-					Output::OrderDeleted(input.order_id, false, output_time);
+					Output::OrderDeleted(input.order_id, false, getCurrentTimestamp());
 				} else {
 					order_map.getInstrument(instr).tryCancel(input.order_id);
 				}
