@@ -45,8 +45,8 @@ public:
 	void tryExecuteBuy(Order& order);
 	void tryExecuteSell(Order& order);
 	void tryCancel(int order_id);
-	void insertBuy(Order& order);
-	void insertSell(Order& order);
+	void insertBuy(Order& order, std::unique_lock<std::mutex> m);
+	void insertSell(Order& order, std::unique_lock<std::mutex> m);
 };
 
 class OrderMap {
