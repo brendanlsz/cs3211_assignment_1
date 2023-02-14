@@ -68,8 +68,8 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 }
 
 void InstrumentOrderBook::tryExecuteSell(Order& order) {
-	std::unique_lock<std::mutex> lk(buy_head->m);
 	std::unique_lock<std::mutex> sell_head_lk(sell_head->m);
+	std::unique_lock<std::mutex> lk(buy_head->m);
 	Node* curr = buy_head->next;
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
