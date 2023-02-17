@@ -27,6 +27,7 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 		if (match.price > order.price) {
 			order.count = totalCount;
 			lk.unlock();
+			lk_2.unlock();
 			insertBuy(order, std::move(buy_head_lk));
 			// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
 			// 	getCurrentTimestamp());
@@ -58,6 +59,7 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 			if (totalCount > 0) {
 				order.count = totalCount;
 				lk.unlock();
+				lk_2.unlock();
 				insertBuy(order, std::move(buy_head_lk));
 				// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false,
 				// 	getCurrentTimestamp()); 
@@ -89,6 +91,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 		if (match.price < order.price) {
 			order.count = totalCount;
 			lk.unlock();
+			lk_2.unlock();
 			insertSell(order, std::move(sell_head_lk));
 			// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
 			// 	getCurrentTimestamp());
@@ -121,6 +124,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 			if (totalCount > 0) {
 				order.count = totalCount;
 				lk.unlock();
+				lk_2.unlock();
 				insertSell(order, std::move(sell_head_lk)); 
 				// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true,
 				// 	getCurrentTimestamp());
@@ -272,6 +276,7 @@ void InstrumentOrderBook::insertSell(Order& order, std::unique_lock<std::mutex> 
 		Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, getCurrentTimestamp());
 		return;
 	}
+
 	std::unique_lock<std::mutex> curr_next_lk(curr_next->m);
 	// std::unique_lock<std::mutex> curr_next_lk = std::move(sell_head_lk);
 	while(curr_next != nullptr && (curr_next->order->price <= order.price ||  curr_next == sell_head)) {
