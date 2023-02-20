@@ -9,9 +9,12 @@
 
 
 void InstrumentOrderBook::tryExecuteBuy(Order& order) {
-	std::unique_lock<std::mutex> lk(sell_head->m);
-	std::unique_lock<std::mutex> buy_head_lk(buy_head->m);
-	Node* curr = sell_head->next;
+	std::unique_lock<std::shared_mutex> sell_head_lk(sell_head->m);
+	std::shared_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+	std::unique_lock<std::shared_mutex> lk(sell_head->head->m);
+	sell_head_lk.unlock();
+	Node* actual_sell_head = sell_head->head;
+	Node* curr = actual_sell_head->next;
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
 		lk.unlock();
@@ -20,7 +23,7 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 		return;
 		
 	} 
-	std::unique_lock<std::mutex> lk_2(curr->m);
+	std::unique_lock<std::shared_mutex> lk_2(curr->m);
 	int totalCount = order.count;
 	while (totalCount > 0 && curr != nullptr) {
 		Order& match = *(curr->order);
@@ -67,16 +70,19 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 			break;
 		} 
 		lk.swap(lk_2);
-		lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+		lk_2 = std::unique_lock<std::shared_mutex>(curr->next->m);
 		curr = curr->next;
 	}
 	
 }
 
 void InstrumentOrderBook::tryExecuteSell(Order& order) {
-	std::unique_lock<std::mutex> sell_head_lk(sell_head->m);
-	std::unique_lock<std::mutex> lk(buy_head->m);
-	Node* curr = buy_head->next;
+	std::shared_lock<std::shared_mutex> sell_head_lk(sell_head->m);
+	std::unique_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+	std::unique_lock<std::shared_mutex> lk(buy_head->head->m);
+	buy_head_lk.unlock();
+	Node* actual_buy_head = buy_head->head;
+	Node* curr = actual_buy_head->next;
 	if (curr == nullptr) { // no matching resting order
 		// add buy order to buy resting
 		lk.unlock();
@@ -84,7 +90,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 		// Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, true, getCurrentTimestamp());
 		return;
 	} 
-	std::unique_lock<std::mutex> lk_2(curr->m);
+	std::unique_lock<std::shared_mutex> lk_2(curr->m);
 	int totalCount = order.count;
 	while (totalCount > 0 && curr != nullptr) {
 		Order& match = *(curr->order);
@@ -132,7 +138,7 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 			break;
 		} 
 		lk.swap(lk_2);
-		lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+		lk_2 = std::unique_lock<std::shared_mutex>(curr->next->m);
 		curr = curr->next;
 	}
 }
@@ -140,13 +146,20 @@ void InstrumentOrderBook::tryExecuteSell(Order& order) {
 void InstrumentOrderBook::tryCancel(int target_order_id) {
 	// iterate through sell list to find matching order id
 	
-	// std::unique_lock<std::mutex> sell_head_lk(sell_head->m);
-	// std::unique_lock<std::mutex> buy_head_lk(buy_head->m);
-	{
-		std::unique_lock<std::mutex> sell_lk_1(sell_head->m);
-		Node* curr = sell_head->next;
+	// std::unique_lock<std::shared_mutex> sell_head_lk(sell_head->m);
+	// std::unique_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+	
+	{	
+		
+		std::unique_lock<std::shared_mutex> sell_head_lk(sell_head->m);
+		
+		std::unique_lock<std::shared_mutex> sell_lk_1(sell_head->head->m);
+		
+		sell_head_lk.unlock();
+		
+		Node* curr = sell_head->head->next;
 		if (curr != nullptr) { // at least one order excluding dummy node
-			std::unique_lock<std::mutex> sell_lk_2(curr->m);
+			std::unique_lock<std::shared_mutex> sell_lk_2(curr->m);
 			// check if order matches
 			while(curr != nullptr) {
 				Order& order = *(curr->order);
@@ -156,7 +169,7 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 				}
 				sell_lk_1.swap(sell_lk_2);
 				if(curr->next != nullptr) {
-					sell_lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+					sell_lk_2 = std::unique_lock<std::shared_mutex>(curr->next->m);
 				}
 				curr = curr->next;
 			}
@@ -180,10 +193,12 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 
 	// iterate through buy list to find matching order id if cannot find in sell list
 	{
-		std::unique_lock<std::mutex> buy_lk_1(buy_head->m);
-		Node* curr = buy_head->next;
+		std::unique_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+		std::unique_lock<std::shared_mutex> buy_lk_1(buy_head->head->m);
+		buy_head_lk.unlock();
+		Node* curr = buy_head->head->next;
 		if (curr != nullptr) { // at least one order excluding dummy node
-			std::unique_lock<std::mutex> buy_lk_2(curr->m);
+			std::unique_lock<std::shared_mutex> buy_lk_2(curr->m);
 			// check if order matches
 			while(curr != nullptr) {
 				Order& order = *(curr->order);
@@ -192,7 +207,7 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 				}
 				buy_lk_1.swap(buy_lk_2);
 				if(curr->next != nullptr) {
-					buy_lk_2 = std::unique_lock<std::mutex>(curr->next->m);
+					buy_lk_2 = std::unique_lock<std::shared_mutex>(curr->next->m);
 				}
 				curr = curr->next;
 			}
@@ -220,28 +235,32 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 	
 }
 
-void InstrumentOrderBook::insertBuy(Order& order, std::unique_lock<std::mutex> buy_head_lk ) {
+void InstrumentOrderBook::insertBuy(Order& order, std::shared_lock<std::shared_mutex> buy_head_lk ) {
 	
 	// dummy mutex
-	// std::mutex mut;
+	// std::shared_mutex mut;
 	// Node* curr = nullptr;
 	// Node* curr_next = buy_head;
-	// std::unique_lock<std::mutex> curr_lk(mut);
-	// std::unique_lock<std::mutex> curr_next_lk = std::move(buy_head_lk);
-	std::unique_lock<std::mutex> curr_lk = std::move(buy_head_lk);
-	Node* curr = buy_head;
-	Node* curr_next = buy_head->next;
+	// std::unique_lock<std::shared_mutex> curr_lk(mut);
+	// std::unique_lock<std::shared_mutex> curr_next_lk = std::move(buy_head_lk);
+
+	// Lock buy_head->head(dummy node) since function already have shared owner_ship
+	std::unique_lock<std::shared_mutex> curr_lk (buy_head->head->m);
+	buy_head_lk.unlock();
+	Node* actual_buy_head = buy_head->head;
+	Node* curr = actual_buy_head;
+	Node* curr_next = actual_buy_head->next;
 	if(curr_next == nullptr) {
 		Node* node = new Node(nullptr, &order);
 		curr->next = node;
 		Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, getCurrentTimestamp());
 		return;
 	}
-	std::unique_lock<std::mutex> curr_next_lk(curr_next->m);
-	while(curr_next != nullptr && (curr_next->order->price >= order.price || curr_next == buy_head)) {
+	std::unique_lock<std::shared_mutex> curr_next_lk(curr_next->m);
+	while(curr_next != nullptr && (curr_next->order->price >= order.price || curr_next == buy_head->head)) {
 		curr_lk.swap(curr_next_lk);
 		if(curr_next->next != nullptr) {
-			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+			curr_next_lk = std::unique_lock<std::shared_mutex>(curr_next->next->m);
 		}
 		curr = curr_next;
 		curr_next = curr_next->next;
@@ -262,14 +281,16 @@ void InstrumentOrderBook::insertBuy(Order& order, std::unique_lock<std::mutex> b
 	Output::OrderAdded(order.order_id, order.instrument.c_str(), order.price, order.count, false, getCurrentTimestamp());
 }
 
-void InstrumentOrderBook::insertSell(Order& order, std::unique_lock<std::mutex> sell_head_lk) {
+void InstrumentOrderBook::insertSell(Order& order, std::shared_lock<std::shared_mutex> sell_head_lk) {
 	// dummy mutex
-	// std::mutex mut;
+	// std::shared_mutex mut;
 	// Node* curr = nullptr;
 	// Node* curr_next = sell_head;
-	std::unique_lock<std::mutex> curr_lk = std::move(sell_head_lk);
-	Node* curr = sell_head;
-	Node* curr_next = sell_head->next;
+	std::unique_lock<std::shared_mutex> curr_lk (sell_head->head->m);
+	sell_head_lk.unlock();
+	Node* actual_sell_head = sell_head->head;
+	Node* curr = actual_sell_head;
+	Node* curr_next = actual_sell_head->next;
 	if(curr_next == nullptr) {
 		Node* node = new Node(nullptr, &order);
 		curr->next = node;
@@ -277,12 +298,12 @@ void InstrumentOrderBook::insertSell(Order& order, std::unique_lock<std::mutex> 
 		return;
 	}
 
-	std::unique_lock<std::mutex> curr_next_lk(curr_next->m);
-	// std::unique_lock<std::mutex> curr_next_lk = std::move(sell_head_lk);
-	while(curr_next != nullptr && (curr_next->order->price <= order.price ||  curr_next == sell_head)) {
+	std::unique_lock<std::shared_mutex> curr_next_lk(curr_next->m);
+	// std::unique_lock<std::shared_mutex> curr_next_lk = std::move(sell_head_lk);
+	while(curr_next != nullptr && (curr_next->order->price <= order.price ||  curr_next == sell_head->head)) {
 		curr_lk.swap(curr_next_lk);
 		if(curr_next->next != nullptr) {
-			curr_next_lk = std::unique_lock<std::mutex>(curr_next->next->m);
+			curr_next_lk = std::unique_lock<std::shared_mutex>(curr_next->next->m);
 		}
 		curr = curr_next;
 		curr_next = curr_next->next;

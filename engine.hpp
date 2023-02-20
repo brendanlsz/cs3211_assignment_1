@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <unordered_map>
+#include <shared_mutex>
 
 #include "io.hpp"
 
@@ -28,32 +29,41 @@ class Node {
 public:
 	Node* next;
 	Order* order;
-	std::mutex m;
+	std::shared_mutex m;
 	int exec_id;
 
 	Node(Node* next, Order* order) : next(next), order(order), m{}, exec_id(1) {}
 };
 
+class HeadNode {
+public:
+	Node* const head;
+	std::shared_mutex m;
+
+	HeadNode(Node* head) : head(head), m{} {}
+};
+
 class InstrumentOrderBook {
 public:
-	Node* const buy_head;
-	Node* const sell_head;
+	HeadNode* const buy_head;
+	HeadNode* const sell_head;
 	std::string instr;
 	//InstrumentOrderBook() : buy{} , sell{} {}
-	InstrumentOrderBook(std::string instr) : buy_head(new Node(nullptr, new Order{0, instr, 0, 0, "0"})), sell_head(new Node(nullptr, new Order{0, instr, 0, 0, "0"})), 
+	// InstrumentOrderBook(std::string instr) : buy_head(new Node(nullptr, new Order{0, instr, 0, 0, "0"})), sell_head(new Node(nullptr, new Order{0, instr, 0, 0, "0"})), 
+	// 	instr(instr) {}
+	InstrumentOrderBook(std::string instr) : buy_head(new HeadNode(new Node(nullptr, new Order{0, instr, 0, 0, "0"}))), sell_head(new HeadNode(new Node(nullptr, new Order{0, instr, 0, 0, "0"}))), 
 		instr(instr) {}
 	void tryExecuteBuy(Order& order);
 	void tryExecuteSell(Order& order);
 	void tryCancel(int order_id);
-	void insertBuy(Order& order, std::unique_lock<std::mutex> m);
-	void insertSell(Order& order, std::unique_lock<std::mutex> m);
+	void insertBuy(Order& order, std::shared_lock<std::shared_mutex> m);
+	void insertSell(Order& order, std::shared_lock<std::shared_mutex> m);
 };
 
 class OrderMap {
-	// hasmap<"str: instrument" : InstrumentOrderBook>
 	std::unordered_map<std::string, InstrumentOrderBook> instrument_map;
 	std::unordered_map<int, std::string> order_instrument_map;
-	std::mutex mut;
+	std::shared_mutex mut;
 
 public:
 	OrderMap() : instrument_map{}, order_instrument_map{}, mut{} {}
