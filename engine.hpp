@@ -39,8 +39,9 @@ class HeadNode {
 public:
 	Node* const head;
 	std::shared_mutex m;
+	std::mutex control_m;
 
-	HeadNode(Node* head) : head(head), m{} {}
+	HeadNode(Node* head) : head(head), m{}, control_m{} {}
 };
 
 class InstrumentOrderBook {
