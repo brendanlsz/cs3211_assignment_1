@@ -9,8 +9,17 @@
 
 
 void InstrumentOrderBook::tryExecuteBuy(Order& order) {
+
+	std::unique_lock<std::mutex> sell_head_ctrl_lk(sell_head->control_m);
+	std::unique_lock<std::mutex> buy_head_ctrl_lk(buy_head->control_m);
+
 	std::unique_lock<std::shared_mutex> sell_head_lk(sell_head->m);
 	std::shared_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+
+	sell_head_ctrl_lk.unlock();
+	buy_head_ctrl_lk.unlock();
+
+	
 	std::unique_lock<std::shared_mutex> lk(sell_head->head->m);
 	sell_head_lk.unlock();
 	Node* actual_sell_head = sell_head->head;
@@ -77,8 +86,15 @@ void InstrumentOrderBook::tryExecuteBuy(Order& order) {
 }
 
 void InstrumentOrderBook::tryExecuteSell(Order& order) {
+	std::unique_lock<std::mutex> sell_head_ctrl_lk(sell_head->control_m);
+	std::unique_lock<std::mutex> buy_head_ctrl_lk(buy_head->control_m);
+
 	std::shared_lock<std::shared_mutex> sell_head_lk(sell_head->m);
 	std::unique_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+
+	sell_head_ctrl_lk.unlock();
+	buy_head_ctrl_lk.unlock();
+
 	std::unique_lock<std::shared_mutex> lk(buy_head->head->m);
 	buy_head_lk.unlock();
 	Node* actual_buy_head = buy_head->head;
@@ -150,9 +166,9 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 	// std::unique_lock<std::shared_mutex> buy_head_lk(buy_head->m);
 	
 	{	
-		
+		std::unique_lock<std::mutex> sell_head_ctrl_lk(sell_head->control_m);
 		std::unique_lock<std::shared_mutex> sell_head_lk(sell_head->m);
-		
+		sell_head_ctrl_lk.unlock();
 		std::unique_lock<std::shared_mutex> sell_lk_1(sell_head->head->m);
 		
 		sell_head_lk.unlock();
@@ -193,7 +209,11 @@ void InstrumentOrderBook::tryCancel(int target_order_id) {
 
 	// iterate through buy list to find matching order id if cannot find in sell list
 	{
+		std::unique_lock<std::mutex> buy_head_ctrl_lk(buy_head->control_m);
 		std::unique_lock<std::shared_mutex> buy_head_lk(buy_head->m);
+
+		buy_head_ctrl_lk.unlock();
+		
 		std::unique_lock<std::shared_mutex> buy_lk_1(buy_head->head->m);
 		buy_head_lk.unlock();
 		Node* curr = buy_head->head->next;
